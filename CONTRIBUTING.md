@@ -32,7 +32,7 @@ Thank you for your interest in contributing! This repository is built by the com
 
 When adding questions, follow this structure:
 
-```markdown
+```
 ## Question: [Short descriptive title]
 
 **Level:** Junior/Mid/Senior  
@@ -46,9 +46,8 @@ When adding questions, follow this structure:
 [Provide a comprehensive answer with explanation]
 
 ### Code Example
-```dart
 // Working code example here
-```
+
 
 ### Best Practices
 - Point 1
@@ -62,9 +61,8 @@ When adding questions, follow this structure:
 - Related question 1
 - Related question 2
 
----
 ```
-
+---
 ### Code Standards
 
 - **Use Flutter 3.x+ syntax**
@@ -212,7 +210,7 @@ Found a problem? Please report it!
 Not sure what to contribute? Here are some ideas:
 
 ### High-Priority Areas
-- [ ] Flutter 3.19+ new features
+- [ ] Flutter 3.27+ new features
 - [ ] Material Design 3 (Material You)
 - [ ] Advanced Riverpod patterns
 - [ ] Performance profiling tools
@@ -243,25 +241,6 @@ All contributors will be:
 - **Found a bug?** Open an [issue](https://github.com/sayedmoataz/flutter-interview-mastery/issues)
 - **Want to chat?** Join our community discussions
 
-## 📜 Code of Conduct
-
-### Our Pledge
-We are committed to providing a welcoming and inclusive environment for all contributors.
-
-### Expected Behavior
-- Be respectful and considerate
-- Accept constructive criticism gracefully
-- Focus on what's best for the community
-- Show empathy towards others
-
-### Unacceptable Behavior
-- Harassment or discriminatory language
-- Trolling or insulting comments
-- Spam or self-promotion without value
-- Publishing others' private information
-
-### Enforcement
-Violations may result in temporary or permanent ban from contributing.
 
 ## 📄 License
 
