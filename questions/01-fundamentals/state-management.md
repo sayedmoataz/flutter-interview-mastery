@@ -10,7 +10,7 @@
 7. [Multiple Providers](#q7-multiple-providers)
 8. [State Management Mistakes](#q8-state-management-mistakes)
 9. [When to Use setState vs Provider](#q9-when-to-use-setstate-vs-provider)
-10. [InheritedWidget Deep Dive](#q10-inheritedwidget-deep-dive)
+10. [StreamController and Streams](#q10-streamcontroller-and-streams)
 
 ---
 
@@ -1014,4 +1014,422 @@ class _MultipleNotifiersExampleState extends State<MultipleNotifiersExample> {
 
 ---
 
-*Due to length limits, I'll create this as the first part. Would you like me to continue with Q5-Q10 (Provider, Consumer, Multiple Providers, etc.)?*
+## Q5: Provider Basics
+
+**Level:** Junior-Mid  
+**Category:** State Management  
+**Difficulty:** ⭐⭐⭐
+
+### The Question
+What is Provider? How do you use it for basic state management?
+
+### Answer
+
+**Provider** is the recommended state management solution by the Flutter team. It's a wrapper around InheritedWidget that makes it easier to use and more performant.
+
+**Benefits:**
+- Easy to use
+- Good performance
+- Testable
+- Works with ChangeNotifier
+- No boilerplate code
+
+### Code Example
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+// Step 1: Create a ChangeNotifier model
+class Counter extends ChangeNotifier {
+  int _count = 0;
+
+  int get count => _count;
+
+  void increment() {
+    _count++;
+    notifyListeners(); // Notify all listeners
+  }
+
+  void decrement() {
+    _count--;
+    notifyListeners();
+  }
+
+  void reset() {
+    _count = 0;
+    notifyListeners();
+  }
+}
+
+// Step 2: Provide the model at the top of widget tree
+void main() {
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => Counter(),
+      child: MyApp(),
+    ),
+  );
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: CounterScreen(),
+    );
+  }
+}
+
+// Step 3: Consume the model in any widget
+class CounterScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Provider Example')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Read value - rebuilds when count changes
+            Consumer<Counter>(
+              builder: (context, counter, child) {
+                return Text(
+                  'Count: ${counter.count}',
+                  style: TextStyle(fontSize: 48),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  // Access method without rebuilding
+                  onPressed: () {
+                    context.read<Counter>().decrement();
+                  },
+                  child: const Icon(Icons.remove),
+                ),
+                const SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    context.read<Counter>().increment();
+                  },
+                  child: const Icon(Icons.add),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          context.read<Counter>().reset();
+        },
+        child: const Icon(Icons.refresh),
+      ),
+    );
+  }
+}
+```
+
+### Different Ways to Access Provider
+
+```dart
+class AccessProviderExample extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    // Method 1: Consumer - Rebuilds when value changes
+    return Consumer<Counter>(
+      builder: (context, counter, child) {
+        return Text('Count: ${counter.count}');
+      },
+    );
+
+    // Method 2: Provider.of with listen:true (default) - Rebuilds
+    final counter = Provider.of<Counter>(context);
+    return Text('Count: ${counter.count}');
+
+    // Method 3: context.watch - Rebuilds (same as Provider.of)
+    final counter2 = context.watch<Counter>();
+    return Text('Count: ${counter2.count}');
+
+    // Method 4: context.read - Does NOT rebuild (for methods only)
+    return ElevatedButton(
+      onPressed: () => context.read<Counter>().increment(),
+      child: const Text('Increment'),
+    );
+
+    // Method 5: Provider.of with listen:false - Does NOT rebuild
+    return Builder(
+      builder: (context) {
+        return ElevatedButton(
+          onPressed: () {
+            Provider.of<Counter>(context, listen: false).increment();
+          },
+          child: const Text('Increment'),
+        );
+      },
+    );
+  }
+}
+```
+
+### Real-World Example: Shopping Cart with Provider
+
+```dart
+// Model
+class CartModel extends ChangeNotifier {
+  final List<Product> _items = [];
+
+  List<Product> get items => List.unmodifiable(_items);
+  
+  int get itemCount => _items.length;
+  
+  double get totalPrice {
+    return _items.fold(0, (sum, item) => sum + item.price);
+  }
+
+  void addItem(Product product) {
+    _items.add(product);
+    notifyListeners();
+  }
+
+  void removeItem(Product product) {
+    _items.remove(product);
+    notifyListeners();
+  }
+
+  void clear() {
+    _items.clear();
+    notifyListeners();
+  }
+
+  bool contains(Product product) {
+    return _items.contains(product);
+  }
+}
+
+class Product {
+  final String id;
+  final String name;
+  final double price;
+
+  Product({required this.id, required this.name, required this.price});
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Product && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
+// App setup
+void main() {
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => CartModel(),
+      child: ShoppingApp(),
+    ),
+  );
+}
+
+class ShoppingApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: ProductListScreen(),
+    );
+  }
+}
+
+// Product List Screen
+class ProductListScreen extends StatelessWidget {
+  final List<Product> products = [
+    Product(id: '1', name: 'Laptop', price: 999.99),
+    Product(id: '2', name: 'Mouse', price: 29.99),
+    Product(id: '3', name: 'Keyboard', price: 79.99),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Products'),
+        actions: [
+          // Cart badge - rebuilds when cart changes
+          Consumer<CartModel>(
+            builder: (context, cart, child) {
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_cart),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => CartScreen()),
+                      );
+                    },
+                  ),
+                  if (cart.itemCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${cart.itemCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+      body: ListView.builder(
+        itemCount: products.length,
+        itemBuilder: (context, index) {
+          final product = products[index];
+          return ListTile(
+            title: Text(product.name),
+            subtitle: Text('\$${product.price.toStringAsFixed(2)}'),
+            trailing: Consumer<CartModel>(
+              builder: (context, cart, child) {
+                final inCart = cart.contains(product);
+                return IconButton(
+                  icon: Icon(
+                    inCart ? Icons.remove_shopping_cart : Icons.add_shopping_cart,
+                    color: inCart ? Colors.red : null,
+                  ),
+                  onPressed: () {
+                    if (inCart) {
+                      cart.removeItem(product);
+                    } else {
+                      cart.addItem(product);
+                    }
+                  },
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Cart Screen
+class CartScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Shopping Cart'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep),
+            onPressed: () {
+              context.read<CartModel>().clear();
+            },
+          ),
+        ],
+      ),
+      body: Consumer<CartModel>(
+        builder: (context, cart, child) {
+          if (cart.itemCount == 0) {
+            return const Center(
+              child: Text('Your cart is empty'),
+            );
+          }
+
+          return Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  itemCount: cart.itemCount,
+                  itemBuilder: (context, index) {
+                    final product = cart.items[index];
+                    return ListTile(
+                      title: Text(product.name),
+                      subtitle: Text('\$${product.price.toStringAsFixed(2)}'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.remove_circle),
+                        onPressed: () => cart.removeItem(product),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  border: Border(top: BorderSide(color: Colors.grey)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total:',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    Text(
+                      '\$${cart.totalPrice.toStringAsFixed(2)}',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+```
+
+### Provider Types
+
+| Provider Type | Use Case | Example |
+|---------------|----------|----------|
+| Provider | Simple values | `Provider<String>` |
+| ChangeNotifierProvider | ChangeNotifier classes | `ChangeNotifierProvider<Counter>` |
+| FutureProvider | Async data | `FutureProvider<User>` |
+| StreamProvider | Stream data | `StreamProvider<List<Message>>` |
+| MultiProvider | Multiple providers | See Q7 |
+
+### Best Practices
+- Use `context.read()` for methods (no rebuild)
+- Use `context.watch()` or `Consumer` for values (rebuild)
+- Create providers at the highest common ancestor
+- Don't create providers in build method
+- Dispose resources in ChangeNotifier.dispose()
+
+### Common Mistakes to Avoid
+- ❌ Using `context.watch()` in onPressed callbacks
+- ❌ Forgetting to call `notifyListeners()`
+- ❌ Creating provider inside build method
+- ❌ Not disposing ChangeNotifier properly
+- ❌ Using Provider.of instead of context.read/watch
+
+---
+
+*Continued in next response with Q6-Q10...*
